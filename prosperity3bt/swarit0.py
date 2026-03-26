@@ -127,7 +127,6 @@ class Trader:
 
                 result["EMERALDS"] = orders
 
-
             # ===========================
             # TOMATOES
             # ===========================
@@ -147,42 +146,35 @@ class Trader:
 
                 if buy_orders and sell_orders:
 
-                    # ----------------------------
-                    # FEATURES
-                    # ----------------------------
-
                     bid_wall = min(buy_orders.keys())
                     ask_wall = max(sell_orders.keys())
 
-                    best_bid = max(buy_orders.keys())
-                    best_ask = min(sell_orders.keys())
-
                     wall_mid = (bid_wall + ask_wall) / 2
-                    mid = (best_bid + best_ask) / 2
 
-                    spread = best_ask - best_bid
+                    best_bid_bot = max(buy_orders.keys())
+                    best_ask_bot = min(sell_orders.keys())
 
-                    # safe volumes
-                    best_bid_vol = buy_orders.get(best_bid, 0)
-                    best_ask_vol = abs(sell_orders.get(best_ask, 0))
+                    mid = (best_bid_bot + best_ask_bot) / 2
 
-                    # ----------------------------
-                    # LOAD MEMORY
-                    # ----------------------------
+                    # -----------------------
+                    # load previous price
+                    # -----------------------
 
                     data = {}
                     if state.traderData != "":
                         data = json.loads(state.traderData)
 
-                    prev_mid = data.get("tom_prev", None)
+                    prev_mid = data.get("tom_prev", mid)
+
+                    diff = mid - prev_mid
 
                     buy_cap = LIMIT - pos
                     sell_cap = LIMIT + pos
 
 
-                    # ==================================================
-                    # 1. TAKING (unchanged)
-                    # ==================================================
+                    # ===========================
+                    # 1. TAKING (same as EMERALDS)
+                    # ===========================
 
                     for sp in sorted(sell_orders.keys()):
                         sv = abs(sell_orders[sp])
@@ -228,150 +220,81 @@ class Trader:
                                 pos -= qty
 
 
-                    # ==================================================
-                    # 2. MAKING (AGGRESSIVE ADAPTIVE MM — FIXED)
-                    # ==================================================
+                    # ===========================
+                    # 2. MAKING (same as EMERALDS)
+                    # ===========================
 
-                    # ---------- choose best aggression a ----------
+                    bid_price = bid_wall + 1
+                    ask_price = ask_wall - 1
 
-                    best_a = 1
-                    best_score = -1e9
+                    for bp in sorted(buy_orders.keys(), reverse=True):
 
-                    pos_ratio = abs(pos) / LIMIT
-                    mid_dev = abs(mid - wall_mid)
+                        overbid = bp + 1
 
-                    for a_try in range(1, 6):
-
-                        # quote distance from best
-                        dist = a_try
-
-                        # fill probability approx
-                        fill_prob = 1 / (1 + dist)
-
-                        # expected spread gain
-                        spread_gain = spread
-
-                        # risk penalties
-                        inv_penalty = 0.4 * pos_ratio
-                        fair_penalty = 0.3 * (mid_dev / max(1, spread))
-
-                        # volume bonus (low liquidity → be aggressive)
-                        vol_bonus = 0
-                        if best_bid_vol <= 4 or best_ask_vol <= 4:
-                            vol_bonus = 0.2
-
-                        # early penalty
-                        early_penalty = 0
-                        if state.timestamp < 2000:
-                            early_penalty = 0.3
-
-                        score = (
-                            fill_prob * spread_gain
-                            + vol_bonus
-                            - inv_penalty
-                            - fair_penalty
-                            - early_penalty
-                        )
-
-                        if score > best_score:
-                            best_score = score
-                            best_a = a_try
-
-
-                    a = best_a
-
-                    # ---------- inventory skew ----------
-                    skew = 0
-                    # ---------- queue priority quotes ----------
-
-                    bid_price = best_bid + a - skew
-                    ask_price = best_ask - a + skew
-
-
-                    # ---------- keep inside fair ----------
-
-                    if bid_price >= wall_mid:
-                        bid_price = int(wall_mid - 1)
-
-                    if ask_price <= wall_mid:
-                        ask_price = int(wall_mid + 1)
-
-
-                    # ---------- keep valid spread ----------
-
-                    if bid_price >= ask_price:
-                        bid_price = best_bid
-                        ask_price = best_ask
-
-
-                    # ---------- limit safety ----------
-
-                    if pos > 0.7 * LIMIT:
-                        bid_price -= 1
-
-                    if pos < -0.7 * LIMIT:
-                        ask_price += 1
-
-                    # ==================================================
-                    # SIZE OPTIMIZATION (same method as a)
-                    # ==================================================
-
-                    best_size = 1
-                    best_size_score = -1e9
-
-                    pos_ratio = abs(pos) / LIMIT
-                    mid_dev = abs(mid - wall_mid)
-
-                    for size_try in range(1, 21):
-
-                        # cannot exceed capacity
-                        if size_try > buy_cap and size_try > sell_cap:
+                        if overbid < wall_mid:
+                            bid_price = max(bid_price, overbid)
                             break
 
-                        # fill prob decreases with size
-                        fill_prob = 1 / (1 + a + size_try / 5)
-
-                        spread_gain = spread * size_try
-
-                        inv_penalty = 0.5 * pos_ratio * size_try
-                        fair_penalty = 0.3 * (mid_dev / max(1, spread)) * size_try
-
-                        early_penalty = 0
-                        if state.timestamp < 2000:
-                            early_penalty = 0.3 * size_try
-
-                        score = (
-                            fill_prob * spread_gain
-                            - inv_penalty
-                            - fair_penalty
-                            - early_penalty
-                        )
-
-                        if score > best_size_score:
-                            best_size_score = score
-                            best_size = size_try
+                        elif bp < wall_mid:
+                            bid_price = max(bid_price, bp)
+                            break
 
 
-                    size = best_size
+                    for sp in sorted(sell_orders.keys()):
+
+                        underask = sp - 1
+
+                        if underask > wall_mid:
+                            ask_price = min(ask_price, underask)
+                            break
+
+                        elif sp > wall_mid:
+                            ask_price = min(ask_price, sp)
+                            break
 
 
-                    # clamp with caps
-                    buy_size = min(size, buy_cap)
-                    sell_size = min(size, sell_cap)
+                    if buy_cap > 0:
+                        orders.append(Order("TOMATOES", int(bid_price), buy_cap))
+
+                    if sell_cap > 0:
+                        orders.append(Order("TOMATOES", int(ask_price), -sell_cap))
 
 
-                    # ==================================================
-                    # POST
-                    # ==================================================
+                    # ===========================
+                    # 3. DIRECTIONAL SIGNAL (your diff)
+                    # ===========================
 
-                    if buy_size > 0:
-                        orders.append(Order("TOMATOES", int(bid_price), buy_size))
-                        print(Order("TOMATOES", int(bid_price), buy_size))
+                    # if 48 <= diff <= 72:
 
-                    if sell_size > 0:
-                        orders.append(Order("TOMATOES", int(ask_price), -sell_size))
-                        print(Order("TOMATOES", int(ask_price), -sell_size))
+                    #     qty = min(5, LIMIT + pos)
 
+                    #     if qty > 0:
+                    #         orders.append(Order("TOMATOES", best_bid_bot, -qty))
+
+
+                    # elif -72 <= diff <= -48:
+
+                    #     qty = min(5, LIMIT - pos)
+
+                    #     if qty > 0:
+                    #         orders.append(Order("TOMATOES", best_ask_bot, qty))
+
+
+                    # else:
+
+                    #     if pos > 0:
+                    #         orders.append(Order("TOMATOES", best_bid_bot, -1))
+
+                    #     elif pos < 0:
+                    #         orders.append(Order("TOMATOES", best_ask_bot, 1))
+
+
+    
+
+
+                    # -----------------------
+                    # save price
+                    # -----------------------
 
                     data["tom_prev"] = mid
                     trader_data = json.dumps(data)

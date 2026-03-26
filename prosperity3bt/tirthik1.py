@@ -12,7 +12,7 @@ class Trader:
     # =========================
     # SIGNALS
     # =========================
-    def compute_ema(self, prices, span=14):
+    def compute_ema(self, prices, span=8):
         if len(prices) == 0:
             return 0
         alpha = 2 / (span + 1)
@@ -20,20 +20,6 @@ class Trader:
         for p in prices[1:]:
             ema = alpha * p + (1 - alpha) * ema
         return ema
-
-    def compute_rsi(self, prices, window=14):
-        if len(prices) < window + 1:
-            return 50
-
-        deltas = np.diff(prices[-(window+1):])
-        gains = np.where(deltas > 0, deltas, 0)
-        losses = np.where(deltas < 0, -deltas, 0)
-
-        avg_gain = np.mean(gains)
-        avg_loss = np.mean(losses) + 1e-9
-
-        rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
 
     # =========================
     # MAIN
@@ -94,7 +80,7 @@ class Trader:
                 result["EMERALDS"] = orders
 
             # ===========================
-            # TOMATOES (EMA + Z + RSI)
+            # TOMATOES (FIXED STRATEGY)
             # ===========================
 
             if "TOMATOES" in state.order_depths:
@@ -111,29 +97,37 @@ class Trader:
                     best_ask = min(od.sell_orders.keys())
                     mid = (best_bid + best_ask) / 2
 
-                    # store price
                     self.prices.append(mid)
 
-                    # compute EMA-based Z-score
-                    ema = self.compute_ema(self.prices, 14)
+                    # WAIT FOR ENOUGH DATA (NO RETURN BUG)
+                    if len(self.prices) < 20:
+                        result["TOMATOES"] = orders
+
+                    # =========================
+                    # SIGNALS
+                    # =========================
+
+                    ema_now = self.compute_ema(self.prices[-16:-1], 4)
+                    ema_prev = self.compute_ema(self.prices[-16:-1], 8)
+
+                    trend = ema_now - ema_prev
+
                     std = np.std(self.prices[-20:]) + 1e-9
-                    z = (mid - ema) / std
+                    z = (mid - ema_now) / std
 
-                    # RSI
-                    rsi = self.compute_rsi(self.prices)
-
-                    print(f"Z: {z:.2f}, RSI: {rsi:.2f}, Pos: {pos}")
+                    print(f"Z: {z:.2f}, Trend: {trend:.4f}, Pos: {pos}")
 
                     buy_cap = LIMIT - pos
                     sell_cap = LIMIT + pos
 
                     # =========================
-                    # ENTRY (scaled sizing)
+                    # ENTRY (RELAXED)
                     # =========================
 
-                    if z < -2 and rsi < 35 and buy_cap > 0:
+                    # BUY dips in uptrend
+                    if trend > 0 and z < -1.2 and buy_cap > 0:
 
-                        strength = min(abs(z) / 3, 1)
+                        strength = min(abs(z) / 2, 1)
                         target_pos = int(LIMIT * strength)
 
                         desired = target_pos - pos
@@ -142,9 +136,10 @@ class Trader:
                         if volume >= 2:
                             orders.append(Order("TOMATOES", best_ask, volume))
 
-                    elif z > 2 and rsi > 65 and sell_cap > 0:
+                    # SELL rallies in downtrend
+                    elif trend < 0 and z > 1.2 and sell_cap > 0:
 
-                        strength = min(abs(z) / 3, 1)
+                        strength = min(abs(z) / 2, 1)
                         target_pos = -int(LIMIT * strength)
 
                         desired = target_pos - pos
@@ -154,13 +149,13 @@ class Trader:
                             orders.append(Order("TOMATOES", best_bid, -volume))
 
                     # =========================
-                    # EXIT
+                    # EXIT (FASTER)
                     # =========================
 
-                    elif pos > 0 and z >= 0:
+                    elif pos > 0 and z > -0.3:
                         orders.append(Order("TOMATOES", best_bid, -pos))
 
-                    elif pos < 0 and z <= 0:
+                    elif pos < 0 and z < 0.3:
                         orders.append(Order("TOMATOES", best_ask, -pos))
 
                 result["TOMATOES"] = orders
