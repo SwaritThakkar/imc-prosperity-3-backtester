@@ -57,7 +57,7 @@ class Trader:
                             qty = min(sv, buy_cap)
 
                             if qty > 0:
-                                orders.append(Order("EMERALDS", sp, qty))
+                                #orders.append(Order("EMERALDS", sp, qty))
                                 buy_cap -= qty
                                 pos += qty
 
@@ -66,7 +66,7 @@ class Trader:
                             qty = min(sv, -pos)
 
                             if qty > 0:
-                                orders.append(Order("EMERALDS", sp, qty))
+                                #orders.append(Order("EMERALDS", sp, qty))
                                 buy_cap -= qty
                                 pos += qty
 
@@ -79,7 +79,7 @@ class Trader:
                             qty = min(bv, sell_cap)
 
                             if qty > 0:
-                                orders.append(Order("EMERALDS", bp, -qty))
+                                #orders.append(Order("EMERALDS", bp, -qty))
                                 sell_cap -= qty
                                 pos -= qty
 
@@ -88,7 +88,7 @@ class Trader:
                             qty = min(bv, pos)
 
                             if qty > 0:
-                                orders.append(Order("EMERALDS", bp, -qty))
+                                #orders.append(Order("EMERALDS", bp, -qty))
                                 sell_cap -= qty
                                 pos -= qty
 
@@ -124,11 +124,11 @@ class Trader:
                             break
 
 
-                    if buy_cap > 0:
-                        orders.append(Order("EMERALDS", int(bid_price), buy_cap))
+                    #if buy_cap > 0:
+                        #orders.append(Order("EMERALDS", int(bid_price), buy_cap))
 
-                    if sell_cap > 0:
-                        orders.append(Order("EMERALDS", int(ask_price), -sell_cap))
+                    #if sell_cap > 0:
+                        #orders.append(Order("EMERALDS", int(ask_price), -sell_cap))
 
 
                 result["EMERALDS"] = orders
@@ -169,7 +169,6 @@ class Trader:
                     buy_cap = LIMIT - pos
                     sell_cap = LIMIT + pos
 
-
                     # ===========================
                     # 1. TAKING (same as EMERALDS)
                     # ===========================
@@ -182,7 +181,7 @@ class Trader:
                             qty = min(sv, buy_cap)
 
                             if qty > 0:
-                                orders.append(Order("TOMATOES", sp, qty))
+                                #orders.append(Order("TOMATOES", sp, qty))
                                 buy_cap -= qty
                                 pos += qty
 
@@ -191,7 +190,7 @@ class Trader:
                             qty = min(sv, -pos)
 
                             if qty > 0:
-                                orders.append(Order("TOMATOES", sp, qty))
+                                #orders.append(Order("TOMATOES", sp, qty))
                                 buy_cap -= qty
                                 pos += qty
 
@@ -204,7 +203,7 @@ class Trader:
                             qty = min(bv, sell_cap)
 
                             if qty > 0:
-                                orders.append(Order("TOMATOES", bp, -qty))
+                                #orders.append(Order("TOMATOES", bp, -qty))
                                 sell_cap -= qty
                                 pos -= qty
 
@@ -213,7 +212,7 @@ class Trader:
                             qty = min(bv, pos)
 
                             if qty > 0:
-                                orders.append(Order("TOMATOES", bp, -qty))
+                                #orders.append(Order("TOMATOES", bp, -qty))
                                 sell_cap -= qty
                                 pos -= qty
 
@@ -251,43 +250,11 @@ class Trader:
                             break
 
 
-                    if buy_cap > 0:
-                        orders.append(Order("TOMATOES", int(bid_price), buy_cap))
+                    #if buy_cap > 0:
+                        #orders.append(Order("TOMATOES", int(bid_price), buy_cap))
 
-                    if sell_cap > 0:
-                        orders.append(Order("TOMATOES", int(ask_price), -sell_cap))
-
-
-                    # ===========================
-                    # 3. DIRECTIONAL SIGNAL (your diff)
-                    # ===========================
-
-                    # if 10 <= diff <= 72:
-
-                    #     qty = min(5, LIMIT + pos)
-
-                    #     if qty > 0:
-                    #         orders.append(Order("TOMATOES", best_bid_bot, -qty))
-
-
-                    # elif -72 <= diff <= -48:
-
-                    #     qty = min(5, LIMIT - pos)
-
-                    #     if qty > 0:
-                    #         orders.append(Order("TOMATOES", best_ask_bot, qty))
-
-
-                    # else:
-
-                    #     if pos > 0:
-                    #         orders.append(Order("TOMATOES", best_bid_bot, -1))
-
-                    #     elif pos < 0:
-                    #         orders.append(Order("TOMATOES", best_ask_bot, 1))
-
-
-    
+                    #if sell_cap > 0:
+                        #orders.append(Order("TOMATOES", int(ask_price), -sell_cap))
 
 
                     # -----------------------

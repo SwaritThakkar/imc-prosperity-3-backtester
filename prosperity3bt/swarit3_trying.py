@@ -5,8 +5,6 @@ from typing import Any
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState
 from math import ceil
 
-
-
 class Logger:
     def __init__(self) -> None:
         self.logs = ""
@@ -28,7 +26,6 @@ class Logger:
             )
         )
 
-        # We truncate state.traderData, trader_data, and self.logs to the same max. length to fit the log limit
         max_item_length = (self.max_log_length - base_length) // 3
 
         print(
@@ -135,9 +132,7 @@ class Logger:
 
         return out
 
-
 logger = Logger()
-
 
 class Trader:
     def run(self, state: TradingState):
@@ -152,314 +147,313 @@ class Trader:
                 data = {}
         trader_data = ""
 
-        # ===========================
-        # EMERALDS (StaticTrader style)
-        # ===========================
+        # try:
 
-        if "EMERALDS" in state.order_depths:
+        #     # ===========================
+        #     # EMERALDS (StaticTrader style)
+        #     # ===========================
 
-            orders = []
+        #     if "EMERALDS" in state.order_depths:
 
-            od = state.order_depths["EMERALDS"]
+        #         orders = []
 
-            LIMIT = 80
+        #         od = state.order_depths["EMERALDS"]
 
-            buy_orders = od.buy_orders
-            sell_orders = od.sell_orders
+        #         LIMIT = 80
 
-            if buy_orders and sell_orders:
+        #         buy_orders = od.buy_orders
+        #         sell_orders = od.sell_orders
 
-                bid_wall = min(buy_orders.keys())
-                ask_wall = max(sell_orders.keys())
+        #         if buy_orders and sell_orders:
 
-                wall_mid = (bid_wall + ask_wall) / 2
+        #             bid_wall = min(buy_orders.keys())
+        #             ask_wall = max(sell_orders.keys())
 
-                pos = state.position.get("EMERALDS", 0)
+        #             wall_mid = (bid_wall + ask_wall) / 2
 
-                buy_cap = LIMIT - pos
-                sell_cap = LIMIT + pos
+        #             pos = state.position.get("EMERALDS", 0)
 
-                # ---------- TAKING ----------
+        #             buy_cap = LIMIT - pos
+        #             sell_cap = LIMIT + pos
 
-                for sp in sorted(sell_orders.keys()):
-                    sv = abs(sell_orders[sp])
+        #             # ---------- TAKING ----------
 
-                    if sp <= wall_mid - 1:
+        #             for sp in sorted(sell_orders.keys()):
+        #                 sv = abs(sell_orders[sp])
 
-                        qty = min(sv, buy_cap)
+        #                 if sp <= wall_mid - 1:
 
-                        if qty > 0:
-                            orders.append(Order("EMERALDS", sp, qty))
-                            buy_cap -= qty
-                            pos += qty
+        #                     qty = min(sv, buy_cap)
 
-                    elif sp <= wall_mid and pos < 0:
+        #                     if qty > 0:
+        #                         orders.append(Order("EMERALDS", sp, qty))
+        #                         buy_cap -= qty
+        #                         pos += qty
 
-                        qty = min(sv, -pos)
+        #                 elif sp <= wall_mid and pos < 0:
 
-                        if qty > 0:
-                            orders.append(Order("EMERALDS", sp, qty))
-                            buy_cap -= qty
-                            pos += qty
+        #                     qty = min(sv, -pos)
 
+        #                     if qty > 0:
+        #                         orders.append(Order("EMERALDS", sp, qty))
+        #                         buy_cap -= qty
+        #                         pos += qty
 
-                for bp in sorted(buy_orders.keys(), reverse=True):
-                    bv = buy_orders[bp]
 
-                    if bp >= wall_mid + 1:
+        #             for bp in sorted(buy_orders.keys(), reverse=True):
+        #                 bv = buy_orders[bp]
 
-                        qty = min(bv, sell_cap)
+        #                 if bp >= wall_mid + 1:
 
-                        if qty > 0:
-                            orders.append(Order("EMERALDS", bp, -qty))
-                            sell_cap -= qty
-                            pos -= qty
+        #                     qty = min(bv, sell_cap)
 
-                    elif bp >= wall_mid and pos > 0:
+        #                     if qty > 0:
+        #                         orders.append(Order("EMERALDS", bp, -qty))
+        #                         sell_cap -= qty
+        #                         pos -= qty
 
-                        qty = min(bv, pos)
+        #                 elif bp >= wall_mid and pos > 0:
 
-                        if qty > 0:
-                            orders.append(Order("EMERALDS", bp, -qty))
-                            sell_cap -= qty
-                            pos -= qty
+        #                     qty = min(bv, pos)
 
+        #                     if qty > 0:
+        #                         orders.append(Order("EMERALDS", bp, -qty))
+        #                         sell_cap -= qty
+        #                         pos -= qty
 
-                # ---------- MAKING ----------
 
-                bid_price = bid_wall + 1
-                ask_price = ask_wall - 1
+        #             # ---------- MAKING ----------
 
-                for bp in sorted(buy_orders.keys(), reverse=True):
+        #             bid_price = bid_wall + 1
+        #             ask_price = ask_wall - 1
 
-                    overbid = bp + 1
+        #             for bp in sorted(buy_orders.keys(), reverse=True):
 
-                    if overbid < wall_mid:
-                        bid_price = max(bid_price, overbid)
-                        break
+        #                 overbid = bp + 1
 
-                    elif bp < wall_mid:
-                        bid_price = max(bid_price, bp)
-                        break
+        #                 if overbid < wall_mid:
+        #                     bid_price = max(bid_price, overbid)
+        #                     break
 
+        #                 elif bp < wall_mid:
+        #                     bid_price = max(bid_price, bp)
+        #                     break
 
-                for sp in sorted(sell_orders.keys()):
 
-                    underask = sp - 1
+        #             for sp in sorted(sell_orders.keys()):
 
-                    if underask > wall_mid:
-                        ask_price = min(ask_price, underask)
-                        break
+        #                 underask = sp - 1
 
-                    elif sp > wall_mid:
-                        ask_price = min(ask_price, sp)
-                        break
+        #                 if underask > wall_mid:
+        #                     ask_price = min(ask_price, underask)
+        #                     break
 
+        #                 elif sp > wall_mid:
+        #                     ask_price = min(ask_price, sp)
+        #                     break
 
-                if buy_cap > 0:
-                    orders.append(Order("EMERALDS", int(bid_price), buy_cap))
 
-                if sell_cap > 0:
-                    orders.append(Order("EMERALDS", int(ask_price), -sell_cap))
+        #             if buy_cap > 0:
+        #                 orders.append(Order("EMERALDS", int(bid_price), buy_cap))
 
+        #             if sell_cap > 0:
+        #                 orders.append(Order("EMERALDS", int(ask_price), -sell_cap))
 
-            result["EMERALDS"] = orders
 
+        #         result["EMERALDS"] = orders
 
-        # ===========================
-        # TOMATOES
-        # ===========================
 
-        if "TOMATOES" in state.order_depths:
+        #     # ===========================
+        #     # TOMATOES
+        #     # ===========================
 
-            orders = []
+        #     if "TOMATOES" in state.order_depths:
 
-            od = state.order_depths["TOMATOES"]
+        #         orders = []
 
-            pos = state.position.get("TOMATOES", 0)
+        #         od = state.order_depths["TOMATOES"]
 
-            LIMIT = 80
+        #         pos = state.position.get("TOMATOES", 0)
 
-            buy_orders = od.buy_orders
-            sell_orders = od.sell_orders
+        #         LIMIT = 80
 
-            if buy_orders and sell_orders:
+        #         buy_orders = od.buy_orders
+        #         sell_orders = od.sell_orders
 
-                bid_wall = min(buy_orders.keys())
-                ask_wall = max(sell_orders.keys())
+        #         if buy_orders and sell_orders:
 
-                wall_mid = (bid_wall + ask_wall) / 2
+        #             bid_wall = min(buy_orders.keys())
+        #             ask_wall = max(sell_orders.keys())
 
-                best_bid_bot = max(buy_orders.keys())
-                best_ask_bot = min(sell_orders.keys())
+        #             wall_mid = (bid_wall + ask_wall) / 2
 
-                mid = (best_bid_bot + best_ask_bot) / 2
+        #             best_bid_bot = max(buy_orders.keys())
+        #             best_ask_bot = min(sell_orders.keys())
 
-                hist = data.get("tom_hist", [])
-                if hist:
-                    prev_mid_s = min(hist)   # for shorting
-                    prev_mid_l = max(hist)
-                else:
-                    prev_mid_s = mid
-                    prev_mid_l = mid
+        #             mid = (best_bid_bot + best_ask_bot) / 2
 
-                diff_s = mid - prev_mid_s
-                diff_l = mid - prev_mid_l
+        #             prev_mid = data.get("tom_prev", mid)
 
-                logger.print(diff_l, diff_s)
+        #             diff = mid - prev_mid
+        #             buy_cap = LIMIT - pos
+        #             sell_cap = LIMIT + pos
 
-                buy_cap = LIMIT - pos
-                sell_cap = LIMIT + pos
+        #             # NEW: load stored trades from previous ticks
+        #             tom_trades = data.get("tom_trades", [])
 
+        #             # NEW: prune old trades using lookback window
+        #             LOOKBACK = 10
+        #             tom_trades = [t for t in tom_trades if t["timestamp"] >= state.timestamp - LOOKBACK]
 
-                # ===========================
-                # 1. TAKING (same as EMERALDS)
-                # ===========================
+        #             # ===========================
+        #             # 1. TAKING (same as EMERALDS)
+        #             # ===========================
 
-                for sp in sorted(sell_orders.keys()):
-                    sv = abs(sell_orders[sp])
+        #             for sp in sorted(sell_orders.keys()):
+        #                 sv = abs(sell_orders[sp])
 
-                    if sp <= wall_mid - 1:
+        #                 if sp <= wall_mid - 1:
 
-                        qty = min(sv, buy_cap)
+        #                     qty = min(sv, buy_cap)
 
-                        if qty > 0:
-                            orders.append(Order("TOMATOES", sp, qty))
-                            buy_cap -= qty
-                            pos += qty
+        #                     if qty > 0:
+        #                         orders.append(Order("TOMATOES", sp, qty))
+        #                         buy_cap -= qty
+        #                         pos += qty
+        #                         # NEW: store aggressive buy trade
+        #                         tom_trades.append({"price": sp, "qty": qty, "type": "BUY", "timestamp": state.timestamp})
 
-                    elif sp <= wall_mid and pos < 0:
+        #                 elif sp <= wall_mid and pos < 0:
 
-                        qty = min(sv, -pos)
+        #                     qty = min(sv, -pos)
 
-                        if qty > 0:
-                            orders.append(Order("TOMATOES", sp, qty))
-                            buy_cap -= qty
-                            pos += qty
+        #                     if qty > 0:
+        #                         orders.append(Order("TOMATOES", sp, qty))
+        #                         buy_cap -= qty
+        #                         pos += qty
+        #                         # NEW: store aggressive buy trade (position recovery)
+        #                         tom_trades.append({"price": sp, "qty": qty, "type": "BUY", "timestamp": state.timestamp})
 
 
-                for bp in sorted(buy_orders.keys(), reverse=True):
-                    bv = buy_orders[bp]
+        #             for bp in sorted(buy_orders.keys(), reverse=True):
+        #                 bv = buy_orders[bp]
 
-                    if bp >= wall_mid + 1:
+        #                 if bp >= wall_mid + 1:
 
-                        qty = min(bv, sell_cap)
+        #                     qty = min(bv, sell_cap)
 
-                        if qty > 0:
-                            orders.append(Order("TOMATOES", bp, -qty))
-                            sell_cap -= qty
-                            pos -= qty
+        #                     if qty > 0:
+        #                         orders.append(Order("TOMATOES", bp, -qty))
+        #                         sell_cap -= qty
+        #                         pos -= qty
+        #                         # NEW: store aggressive sell trade
+        #                         tom_trades.append({"price": bp, "qty": qty, "type": "SELL", "timestamp": state.timestamp})
 
-                    elif bp >= wall_mid and pos > 0:
+        #                 elif bp >= wall_mid and pos > 0:
 
-                        qty = min(bv, pos)
+        #                     qty = min(bv, pos)
 
-                        if qty > 0:
-                            orders.append(Order("TOMATOES", bp, -qty))
-                            sell_cap -= qty
-                            pos -= qty
+        #                     if qty > 0:
+        #                         orders.append(Order("TOMATOES", bp, -qty))
+        #                         sell_cap -= qty
+        #                         pos -= qty
+        #                         # NEW: store aggressive sell trade (position recovery)
+        #                         tom_trades.append({"price": bp, "qty": qty, "type": "SELL", "timestamp": state.timestamp})
 
 
-                # ===========================
-                # 2. MAKING (same as EMERALDS)
-                # ===========================
+        #             # NEW: attempt profit-taking exits from stored trades
+        #             EDGE = 1
+        #             remaining_trades = []
 
-                bid_price = bid_wall + 1
-                ask_price = ask_wall - 1
+        #             for trade in tom_trades:
+        #                 # Skip trades entered this tick to avoid same-tick closure
+        #                 if trade["timestamp"] == state.timestamp:
+        #                     remaining_trades.append(trade)
+        #                     continue
 
-                for bp in sorted(buy_orders.keys(), reverse=True):
+        #                 remaining_qty = trade["qty"]
 
-                    overbid = bp + 1
+        #                 if trade["type"] == "BUY":
+        #                     # NEW: close BUY trade if current best bid is profitable
+        #                     if best_bid_bot >= trade["price"] + EDGE and sell_cap > 0:
+        #                         close_qty = min(remaining_qty, sell_cap)
+        #                         if close_qty > 0:
+        #                             orders.append(Order("TOMATOES", best_bid_bot, -close_qty))
+        #                             sell_cap -= close_qty
+        #                             remaining_qty -= close_qty
 
-                    if overbid < wall_mid:
-                        bid_price = max(bid_price, overbid)
-                        break
+        #                 elif trade["type"] == "SELL":
+        #                     # NEW: close SELL trade if current best ask is profitable
+        #                     if best_ask_bot <= trade["price"] - EDGE and buy_cap > 0:
+        #                         close_qty = min(remaining_qty, buy_cap)
+        #                         if close_qty > 0:
+        #                             orders.append(Order("TOMATOES", best_ask_bot, close_qty))
+        #                             buy_cap -= close_qty
+        #                             remaining_qty -= close_qty
 
-                    elif bp < wall_mid:
-                        bid_price = max(bid_price, bp)
-                        break
+        #                 # NEW: keep trade if not fully closed, update remaining qty
+        #                 if remaining_qty > 0:
+        #                     trade["qty"] = remaining_qty
+        #                     remaining_trades.append(trade)
 
+        #             # NEW: save updated trade list back to data
+        #             tom_trades = remaining_trades
+        #             data["tom_trades"] = tom_trades
 
-                for sp in sorted(sell_orders.keys()):
+        #             # ===========================
+        #             # 2. MAKING (same as EMERALDS)
+        #             # ===========================
 
-                    underask = sp - 1
+        #             bid_price = bid_wall + 1
+        #             ask_price = ask_wall - 1
 
-                    if underask > wall_mid:
-                        ask_price = min(ask_price, underask)
-                        break
+        #             for bp in sorted(buy_orders.keys(), reverse=True):
 
-                    elif sp > wall_mid:
-                        ask_price = min(ask_price, sp)
-                        break
+        #                 overbid = bp + 1
 
+        #                 if overbid < wall_mid:
+        #                     bid_price = max(bid_price, overbid)
+        #                     break
 
-                if buy_cap > 0:
-                    orders.append(Order("TOMATOES", int(bid_price), buy_cap))
+        #                 elif bp < wall_mid:
+        #                     bid_price = max(bid_price, bp)
+        #                     break
 
-                if sell_cap > 0:
-                    orders.append(Order("TOMATOES", int(ask_price), -sell_cap))
 
+        #             for sp in sorted(sell_orders.keys()):
 
-                # ===========================
-                # 2.5 INVENTORY FLATTEN (mean reversion exit)
-                # ===========================
+        #                 underask = sp - 1
 
-                INV_LIMIT = 10
-                DIFF_T = 15
+        #                 if underask > wall_mid:
+        #                     ask_price = min(ask_price, underask)
+        #                     break
 
-                # close short when price high vs recent min
-                if pos > INV_LIMIT and diff_s > DIFF_T:
+        #                 elif sp > wall_mid:
+        #                     ask_price = min(ask_price, sp)
+        #                     break
 
-                    qty = pos
 
-                    orders.append(
-                        Order("TOMATOES", best_bid_bot, -qty)
-                    )
+        #             # if buy_cap > 0:
+        #             #     orders.append(Order("TOMATOES", int(bid_price), buy_cap))
 
+        #             # if sell_cap > 0:
+        #             #     orders.append(Order("TOMATOES", int(ask_price), -sell_cap))
 
-                # close long when price low vs recent max
-                elif pos < -INV_LIMIT and diff_l < -DIFF_T:
 
-                    qty = -pos
+        #             # -----------------------
+        #             # save price
+        #             # -----------------------
 
-                    orders.append(
-                        Order("TOMATOES", best_ask_bot, qty)
-                    )
+        #             data["tom_prev"] = mid
+        #             # trader_data = json.dumps(data)
 
-                # ===========================
-                # 3. DIRECTIONAL SIGNAL (your diff)
-                # ==========================
-                th = 8
-                if th <= diff_s:
+        #         result["TOMATOES"] = orders
 
-                    qty = min(80, LIMIT + pos)
+        # except Exception as e:
+        #     logger.print("ERROR", e)
+        #     logger.print(traceback.format_exc())
 
-                    if qty > 0:
-                        orders.append(Order("TOMATOES", best_bid_bot, -qty))
-
-
-                elif  diff_l <= -th:
-
-                    qty = min(80, LIMIT - pos)
-
-                    if qty > 0:
-                        orders.append(Order("TOMATOES", best_ask_bot, qty))
-
-
-
-                # -----------------------
-                # save price
-                # -----------------------
-                hist = data.get("tom_hist", [])
-                hist.append(mid)
-
-                if len(hist) > 10:
-                    hist.pop(0)
-
-                data["tom_hist"] = hist
-                # trader_data = json.dumps(data)
-
-            result["TOMATOES"] = orders
         trader_data = json.dumps(data)
         logger.flush(state, result, conversions, trader_data)
+        logger.print(result)
         return result, conversions, trader_data
